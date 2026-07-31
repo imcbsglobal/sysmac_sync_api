@@ -1,26 +1,6 @@
-"""
-Views for SYSMAC ECOMMERCE SYNC.
-
-Each endpoint receives a JSON list of rows (a chunk from sync.py) and
-writes them in bulk - one or two queries total, not one query per row.
-That's the difference between ~5 rows/sec and thousands of rows/sec.
-
-Two strategies, depending on whether the table has a real primary key:
-
-1. Tables with a natural key (ProductProduct.name, ProductBrand.name,
-   Master.code, Product.code): bulk_create(..., update_conflicts=True).
-   This is a real upsert - insert new rows, update existing ones whose
-   key already exists - done in one query per chunk.
-
-2. Tables with no natural key (ProductPhoto, ProductBatch,
-   ServiceMaster - their real PK is just an internal slno autofield):
-   there's nothing to "conflict" on, so each sync wipes the table and
-   bulk-inserts fresh. This also avoids these tables growing forever
-   with duplicate rows every time sync.py runs.
-
-No auth wired in yet - AllowAny for now. Swap in JWT/API key auth
-once that's decided, same as MagnetPro's other sync endpoints.
-"""
+from django.forms.models import model_to_dict
+from django.core.paginator import Paginator
+from django.http import JsonResponse
 
 from rest_framework.views import APIView
 from rest_framework.response import Response
@@ -38,6 +18,10 @@ from .models import (
     UserAccount,
 )
 
+
+# ---------------------------------------------------------------------------
+# Write side (POST) - sync.py pushes rows here
+# ---------------------------------------------------------------------------
 
 class BaseUpsertSyncView(APIView):
     """
@@ -194,3 +178,169 @@ class UserAccountSyncView(BaseUpsertSyncView):
     pk_field = "id"
     key_map = {"pass": "password"}
     update_fields = ["password", "role"]
+
+
+# ---------------------------------------------------------------------------
+# Read side (GET) - list / detail, plain JSON, no DRF serializers
+# ---------------------------------------------------------------------------
+
+DEFAULT_PAGE_SIZE = 50
+MAX_PAGE_SIZE = 500
+
+
+def _paginated_response(request, queryset, exclude_fields=None):
+    """
+    Shared pagination + serialization helper for list views.
+    ?page=1&page_size=50
+    """
+    try:
+        page_size = min(int(request.GET.get("page_size", DEFAULT_PAGE_SIZE)), MAX_PAGE_SIZE)
+    except ValueError:
+        page_size = DEFAULT_PAGE_SIZE
+
+    try:
+        page_number = int(request.GET.get("page", 1))
+    except ValueError:
+        page_number = 1
+
+    paginator = Paginator(queryset, page_size)
+    page = paginator.get_page(page_number)
+
+    results = []
+    for obj in page.object_list:
+        data = model_to_dict(obj)
+        if exclude_fields:
+            for field in exclude_fields:
+                data.pop(field, None)
+        results.append(data)
+
+    return JsonResponse({
+        "count": paginator.count,
+        "page": page.number,
+        "num_pages": paginator.num_pages,
+        "page_size": page_size,
+        "results": results,
+    })
+
+
+def _detail_response(obj, exclude_fields=None):
+    if obj is None:
+        return JsonResponse({"error": "Not found."}, status=404)
+    data = model_to_dict(obj)
+    if exclude_fields:
+        for field in exclude_fields:
+            data.pop(field, None)
+    return JsonResponse(data)
+
+
+class ProductProductListView(APIView):
+    permission_classes = [AllowAny]  # TODO: add auth
+
+    def get(self, request):
+        qs = ProductProduct.objects.all().order_by("name")
+        return _paginated_response(request, qs)
+
+
+class ProductProductDetailView(APIView):
+    permission_classes = [AllowAny]  # TODO: add auth
+
+    def get(self, request, name):
+        obj = ProductProduct.objects.filter(pk=name).first()
+        return _detail_response(obj)
+
+
+class ProductBrandListView(APIView):
+    permission_classes = [AllowAny]  # TODO: add auth
+
+    def get(self, request):
+        qs = ProductBrand.objects.all().order_by("name")
+        return _paginated_response(request, qs)
+
+
+class ProductBrandDetailView(APIView):
+    permission_classes = [AllowAny]  # TODO: add auth
+
+    def get(self, request, name):
+        obj = ProductBrand.objects.filter(pk=name).first()
+        return _detail_response(obj)
+
+
+class MasterListView(APIView):
+    permission_classes = [AllowAny]  # TODO: add auth
+
+    def get(self, request):
+        qs = Master.objects.all().order_by("code")
+        return _paginated_response(request, qs)
+
+
+class MasterDetailView(APIView):
+    permission_classes = [AllowAny]  # TODO: add auth
+
+    def get(self, request, code):
+        obj = Master.objects.filter(pk=code).first()
+        return _detail_response(obj)
+
+
+class ProductListView(APIView):
+    permission_classes = [AllowAny]  # TODO: add auth
+
+    def get(self, request):
+        qs = Product.objects.all().order_by("code")
+        return _paginated_response(request, qs)
+
+
+class ProductDetailView(APIView):
+    permission_classes = [AllowAny]  # TODO: add auth
+
+    def get(self, request, code):
+        obj = Product.objects.filter(pk=code).first()
+        return _detail_response(obj)
+
+
+class ProductPhotoListView(APIView):
+    """Supports ?code=P100 to get all photos for one product."""
+    permission_classes = [AllowAny]  # TODO: add auth
+
+    def get(self, request):
+        qs = ProductPhoto.objects.all().order_by("slno")
+        code = request.GET.get("code")
+        if code:
+            qs = qs.filter(code=code)
+        return _paginated_response(request, qs)
+
+
+class ProductBatchListView(APIView):
+    """Supports ?productcode=P100 to get all batches for one product."""
+    permission_classes = [AllowAny]  # TODO: add auth
+
+    def get(self, request):
+        qs = ProductBatch.objects.all().order_by("slno")
+        productcode = request.GET.get("productcode")
+        if productcode:
+            qs = qs.filter(productcode=productcode)
+        return _paginated_response(request, qs)
+
+
+class ServiceMasterListView(APIView):
+    permission_classes = [AllowAny]  # TODO: add auth
+
+    def get(self, request):
+        qs = ServiceMaster.objects.all().order_by("slno")
+        return _paginated_response(request, qs)
+
+
+class UserAccountListView(APIView):
+    """password is never included in the response."""
+    permission_classes = [AllowAny]  # TODO: add auth
+
+    def get(self, request):
+        qs = UserAccount.objects.all().order_by("id")
+        return _paginated_response(request, qs, exclude_fields=["password"])
+
+
+class UserAccountDetailView(APIView):
+    permission_classes = [AllowAny]  # TODO: add auth
+
+    def get(self, request, id):
+        obj = UserAccount.objects.filter(pk=id).first()
+        return _detail_response(obj, exclude_fields=["password"])
