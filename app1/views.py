@@ -176,7 +176,6 @@ class MasterSyncView(BaseUpsertSyncView):
     update_fields = [
         "name", "super_code", "address", "place", "city", "state",
         "phone", "phone2", "fax", "remarkcolumntitle", "area", "gstin",
-        "defect",
     ]
 
 
@@ -188,6 +187,7 @@ class ProductSyncView(BaseUpsertSyncView):
     update_fields = [
         "name", "size", "sub_category", "unit", "taxcode", "company",
         "product", "brand", "text6", "nameinsl", "settings", "properties",
+        "defect",
     ]
 
 

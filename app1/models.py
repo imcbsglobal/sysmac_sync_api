@@ -53,7 +53,6 @@ class Master(models.Model):
     remarkcolumntitle = models.CharField(max_length=20, null=True, blank=True)
     area = models.CharField(max_length=30, null=True, blank=True)
     gstin = models.CharField(max_length=30, null=True, blank=True)
-    defect = models.CharField(max_length=50, null=True, blank=True)
 
     class Meta:
         db_table = "acc_master"
@@ -82,6 +81,7 @@ class Product(models.Model):
     nameinsl = models.CharField(max_length=350, null=True, blank=True)
     settings = models.CharField(max_length=300, null=True, blank=True)
     properties = models.CharField(max_length=900, null=True, blank=True)
+    defect = models.CharField(max_length=50, null=True, blank=True)
 
     class Meta:
         db_table = "acc_product"
