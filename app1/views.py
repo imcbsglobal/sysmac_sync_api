@@ -21,11 +21,25 @@ from .models import (
 
 # ---------------------------------------------------------------------------
 # Write side (POST) - sync.py pushes rows here
+#
+# Every sync view below now fully replaces the table's contents on each
+# sync run: the table is wiped once (on chunk index 0) and then every
+# chunk in that run is inserted fresh. This means a row that no longer
+# exists in the source data will also disappear from Django after the
+# next sync - the table always mirrors exactly what the source sent.
 # ---------------------------------------------------------------------------
 
 class BaseUpsertSyncView(APIView):
     """
-    Bulk upsert for tables that have a real primary key.
+    Upsert for tables that have a real primary key, with full-replace
+    semantics across a sync run.
+
+    sync.py sends the full filtered table split into chunks. On the
+    first chunk (X-Chunk-Index: 0) the table is wiped before inserting,
+    so upsert conflict handling still applies within a run (in case the
+    same row appears twice across chunks) but nothing from a *previous*
+    run survives.
+
     Subclasses set:
       - model: the Django model to sync into
       - pk_field: the model's primary key field name (also the unique key)
@@ -54,6 +68,14 @@ class BaseUpsertSyncView(APIView):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
+        try:
+            chunk_index = int(request.headers.get("X-Chunk-Index", "0"))
+        except ValueError:
+            chunk_index = 0
+
+        if chunk_index == 0:
+            self.model.objects.all().delete()
+
         objs = []
         skipped = []
         for row in rows:
@@ -76,6 +98,8 @@ class BaseUpsertSyncView(APIView):
                 "synced": len(objs),
                 "skipped": skipped,
                 "total_received": len(rows),
+                "chunk_index": chunk_index,
+                "table_wiped_this_request": chunk_index == 0,
             },
             status=status.HTTP_200_OK,
         )
@@ -111,8 +135,12 @@ class BaseReplaceSyncView(APIView):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        is_first_chunk = request.data and int(request.headers.get("X-Chunk-Index", "0")) == 0
-        if is_first_chunk:
+        try:
+            chunk_index = int(request.headers.get("X-Chunk-Index", "0"))
+        except ValueError:
+            chunk_index = 0
+
+        if chunk_index == 0:
             self.model.objects.all().delete()
 
         objs = [self.model(**self.clean_row(row)) for row in rows]
@@ -120,7 +148,12 @@ class BaseReplaceSyncView(APIView):
             self.model.objects.bulk_create(objs)
 
         return Response(
-            {"synced": len(objs), "total_received": len(rows)},
+            {
+                "synced": len(objs),
+                "total_received": len(rows),
+                "chunk_index": chunk_index,
+                "table_wiped_this_request": chunk_index == 0,
+            },
             status=status.HTTP_200_OK,
         )
 
@@ -143,6 +176,7 @@ class MasterSyncView(BaseUpsertSyncView):
     update_fields = [
         "name", "super_code", "address", "place", "city", "state",
         "phone", "phone2", "fax", "remarkcolumntitle", "area", "gstin",
+        "defect",
     ]
 
 

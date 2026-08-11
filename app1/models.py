@@ -53,10 +53,11 @@ class Master(models.Model):
     remarkcolumntitle = models.CharField(max_length=20, null=True, blank=True)
     area = models.CharField(max_length=30, null=True, blank=True)
     gstin = models.CharField(max_length=30, null=True, blank=True)
+    defect = models.CharField(max_length=50, null=True, blank=True)
 
     class Meta:
         db_table = "acc_master"
-        managed = False  # table already exists in postgres, created outside Django migrations
+        managed = False
 
     def __str__(self):
         return f"{self.code} - {self.name}"
