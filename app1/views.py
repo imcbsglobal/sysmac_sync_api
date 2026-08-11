@@ -180,14 +180,13 @@ class MasterSyncView(BaseUpsertSyncView):
 
 
 class ProductSyncView(BaseUpsertSyncView):
-    """Source columns text3/text5 map to model fields size/sub_category."""
     model = Product
     pk_field = "code"
     key_map = {"text3": "size", "text5": "sub_category"}
     update_fields = [
         "name", "size", "sub_category", "unit", "taxcode", "company",
         "product", "brand", "text6", "nameinsl", "settings", "properties",
-        "defect",
+        "defected",
     ]
 
 

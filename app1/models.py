@@ -65,7 +65,7 @@ class Master(models.Model):
 class Product(models.Model):
     """
     Source: acc_product
-    WHERE condition: settings LIKE '%##EC##%'
+    WHERE condition: settings LIKE '%##EC##%' AND defected = 'O'
     text3 = size, text5 = sub category
     """
     code = models.CharField(max_length=30, primary_key=True)
@@ -81,11 +81,11 @@ class Product(models.Model):
     nameinsl = models.CharField(max_length=350, null=True, blank=True)
     settings = models.CharField(max_length=300, null=True, blank=True)
     properties = models.CharField(max_length=900, null=True, blank=True)
-    defect = models.CharField(max_length=50, null=True, blank=True)
+    defected = models.CharField(max_length=50, null=True, blank=True)
 
     class Meta:
         db_table = "acc_product"
-        managed = False  # table already exists in postgres, created outside Django migrations
+        managed = False
 
     def __str__(self):
         return f"{self.code} - {self.name}"
