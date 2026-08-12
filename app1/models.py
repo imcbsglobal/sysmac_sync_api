@@ -7,7 +7,6 @@ class ProductProduct(models.Model):
     WHERE condition: settings LIKE '%##EC##%' AND settings LIKE '%##EU##%'
     """
     name = models.CharField(max_length=30, primary_key=True)
-    settings = models.CharField(max_length=300, null=True, blank=True)
     url = models.CharField(max_length=300, null=True, blank=True)
 
     class Meta:
@@ -24,7 +23,6 @@ class ProductBrand(models.Model):
     WHERE condition: settings LIKE '%##EC##%' AND settings LIKE '%##EU##%'
     """
     name = models.CharField(max_length=30, primary_key=True)
-    settings = models.CharField(max_length=300, null=True, blank=True)
     url = models.CharField(max_length=300, null=True, blank=True)
 
     class Meta:
@@ -79,7 +77,6 @@ class Product(models.Model):
     brand = models.CharField(max_length=30, null=True, blank=True)
     text6 = models.CharField(max_length=40, null=True, blank=True)
     nameinsl = models.CharField(max_length=350, null=True, blank=True)
-    settings = models.CharField(max_length=300, null=True, blank=True)
     properties = models.CharField(max_length=900, null=True, blank=True)
     defected = models.CharField(max_length=50, null=True, blank=True)
 
@@ -123,7 +120,6 @@ class ProductBatch(models.Model):
     nlc1 = models.DecimalField(max_digits=15, decimal_places=5, null=True, blank=True)
     barcode = models.CharField(max_length=35, null=True, blank=True)
     bmrp = models.DecimalField(max_digits=15, decimal_places=5, null=True, blank=True)
-    settings = models.CharField(max_length=300, null=True, blank=True)
 
     class Meta:
         db_table = "acc_productbatch"

@@ -161,13 +161,13 @@ class BaseReplaceSyncView(APIView):
 class ProductProductSyncView(BaseUpsertSyncView):
     model = ProductProduct
     pk_field = "name"
-    update_fields = ["settings", "url"]
+    update_fields = ["url"]
 
 
 class ProductBrandSyncView(BaseUpsertSyncView):
     model = ProductBrand
     pk_field = "name"
-    update_fields = ["settings", "url"]
+    update_fields = ["url"]
 
 
 class MasterSyncView(BaseUpsertSyncView):
@@ -185,7 +185,7 @@ class ProductSyncView(BaseUpsertSyncView):
     key_map = {"text3": "size", "text5": "sub_category"}
     update_fields = [
         "name", "size", "sub_category", "unit", "taxcode", "company",
-        "product", "brand", "text6", "nameinsl", "settings", "properties",
+        "product", "brand", "text6", "nameinsl", "properties",
         "defected",
     ]
 
