@@ -63,7 +63,7 @@ class Master(models.Model):
 class Product(models.Model):
     """
     Source: acc_product
-    WHERE condition: settings LIKE '%##EC##%' AND defected = 'O'
+    WHERE condition: defected = 'O'
     text3 = size, text5 = sub category
     """
     code = models.CharField(max_length=30, primary_key=True)

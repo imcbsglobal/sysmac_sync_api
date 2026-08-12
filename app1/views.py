@@ -225,7 +225,26 @@ def _paginated_response(request, queryset, exclude_fields=None):
     """
     Shared pagination + serialization helper for list views.
     ?page=1&page_size=50
+    Pass ?no_page=true (or ?no_page=1) to skip pagination and return everything.
     """
+    no_page = request.GET.get("no_page", "").lower() in ("1", "true", "yes")
+
+    if no_page:
+        results = []
+        for obj in queryset:
+            data = model_to_dict(obj)
+            if exclude_fields:
+                for field in exclude_fields:
+                    data.pop(field, None)
+            results.append(data)
+        return JsonResponse({
+            "count": len(results),
+            "page": 1,
+            "num_pages": 1,
+            "page_size": len(results),
+            "results": results,
+        })
+
     try:
         page_size = min(int(request.GET.get("page_size", DEFAULT_PAGE_SIZE)), MAX_PAGE_SIZE)
     except ValueError:
